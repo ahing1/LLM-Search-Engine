@@ -13,11 +13,7 @@ def embed_text(text):
     response = client.embeddings.create(input=text, model="text-embedding-3-small")
     return response["data"][0]["embedding"]
 
-def store_embedding(text, doc_id):
-    vector = embed_text(text)
-    pinecone.upsert([(doc_id, vector)])
-
-def fetch_documents():
+def fetch_articles():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT id, title, content FROM articles")
@@ -25,11 +21,13 @@ def fetch_documents():
     conn.close()
     return documents
 
-def process_documents():
-    documents = fetch_documents()
-    for doc in documents:
-        combined_text = f"{doc['title']} {doc['content']}"
-        store_embedding(doc["id"], combined_text)
+def store_embedding():
+    articles  = fetch_articles()
+    for article in articles:
+        combined_text = f"{article['title']} {article['content']}"
+        embedding = embed_text(combined_text)
+        index.upsert([(str(article["id"]), embedding)])
+        print(f"✅ Stored embedding for article ID: {article['id']}")
 
 def check_pinecone_index():
     stats = index.describe_index_stats()
