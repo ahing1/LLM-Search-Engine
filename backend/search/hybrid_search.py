@@ -53,7 +53,7 @@ def keyword_search(query, limit=5):
     """
     cursor.execute(sql, (query, query, limit))
     results = cursor.fetchall()
-    conn.close()
+    conn.close()    
     return results
 
 def embed_text(text):
@@ -68,7 +68,7 @@ def semantic_search(query, top_k=5):
     return [{"id": match["id"], "score": match["score"]} for match in results["matches"]]
 
 # 3️⃣ Hybrid Search (Merging Both)
-def hybrid_search(query, top_k=5):
+def hybrid_search(query, top_k=5, bm25_weight=0.7, semantic_weight=0.3):
     keyword_results = keyword_search(query, limit=top_k)
     semantic_results = semantic_search(query, top_k=top_k)
 
