@@ -72,18 +72,24 @@ def hybrid_search(query, top_k=5):
     keyword_results = keyword_search(query, limit=top_k)
     semantic_results = semantic_search(query, top_k=top_k)
 
-    # Merge results and remove duplicates
-    seen_ids = set()
-    combined_results = []
-    
-    for result in keyword_results + semantic_results:
-        if result["id"] not in seen_ids:
-            combined_results.append(result)
-            seen_ids.add(result["id"])
+   # Convert to dictionary for easier merging
+    combined_results = {}
 
-    # Sort by highest score
-    combined_results.sort(key=lambda x: x.get("score", 0), reverse=True)
-    return combined_results
+    for result in keyword_results:
+        article_id = result["id"]
+        combined_results[article_id] = {"id": article_id, "score": result["score"] * bm25_weight}
+
+    for result in semantic_results:
+        article_id = result["id"]
+        if article_id in combined_results:
+            combined_results[article_id]["score"] += result["score"] * semantic_weight
+        else:
+            combined_results[article_id] = {"id": article_id, "score": result["score"] * semantic_weight}
+
+    # Sort results by score
+    sorted_results = sorted(combined_results.values(), key=lambda x: x["score"], reverse=True)
+    
+    return sorted_results[:top_k]
 
 # Example search
 if __name__ == "__main__":
