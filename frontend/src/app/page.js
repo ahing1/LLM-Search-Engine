@@ -1,24 +1,39 @@
-"use client";
+"use client"; // ✅ Ensure this is a Client Component
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        if (!query) {
+            setResults([]); // Clear results if no query
+            return;
+        }
+
+        const delayDebounce = setTimeout(() => {
+            handleSearch();
+        }, 500); // ✅ Wait 500ms before making the API call
+
+        return () => clearTimeout(delayDebounce); // Cleanup timeout
+    }, [query]);
 
     const handleSearch = async () => {
-        if (!query) return;
         setLoading(true);
-        
+        setError("");
+
         try {
-            console.log("Query:", query);
             const response = await fetch(`http://127.0.0.1:8000/search/?q=${query}&top_k=5`);
+            if (!response.ok) throw new Error("Failed to fetch results");
+            
             const data = await response.json();
-            console.log("Data:", data);
             setResults(data.results);
-        } catch (error) {
-            console.error("Search error:", error);
+        } catch (err) {
+            setError("Something went wrong. Try again.");
+            console.error("Search error:", err);
         }
 
         setLoading(false);
@@ -27,6 +42,7 @@ export default function Home() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100">
             <h1 className="text-3xl font-bold mb-4">AI-Powered Search</h1>
+            
             <input
                 type="text"
                 placeholder="Search for AI topics..."
@@ -34,13 +50,9 @@ export default function Home() {
                 onChange={(e) => setQuery(e.target.value)}
                 className="p-2 border rounded-md w-80"
             />
-            <button
-                onClick={handleSearch}
-                className="mt-2 p-2 bg-blue-500 text-white rounded-md"
-                disabled={loading}
-            >
-                {loading ? "Searching..." : "Search"}
-            </button>
+
+            {loading && <p className="mt-2 text-gray-600">🔄 Searching...</p>}
+            {error && <p className="mt-2 text-red-500">{error}</p>}
 
             {results.length > 0 && (
                 <div className="mt-4 w-80">
