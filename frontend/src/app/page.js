@@ -5,21 +5,36 @@ import { useState, useEffect } from "react";
 export default function Home() {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
         if (!query) {
-            setResults([]); // Clear results if no query
+            setResults([]);
+            setSuggestions([]);
             return;
         }
 
         const delayDebounce = setTimeout(() => {
             handleSearch();
+            fetchSuggestions();
         }, 500); // ✅ Wait 500ms before making the API call
 
         return () => clearTimeout(delayDebounce); // Cleanup timeout
     }, [query]);
+    
+    const fetchSuggestions = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/suggest/?q=${query}`);
+            if (!response.ok) throw new Error("Failed to fetch suggestions");
+            const data = await response.json();
+            setSuggestions(data.suggestions);
+        }
+        catch (err) {
+            console.error("Suggestion error:", err);
+        }
+    }
 
     const handleSearch = async () => {
         setLoading(true);
@@ -39,6 +54,12 @@ export default function Home() {
         setLoading(false);
     };
 
+    const selectSuggestion = (suggestion) => {
+        setQuery(suggestion);
+        setSuggestions([]);
+        handleSearch();
+    }
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100">
             <h1 className="text-3xl font-bold mb-4">AI-Powered Search</h1>
@@ -50,6 +71,20 @@ export default function Home() {
                 onChange={(e) => setQuery(e.target.value)}
                 className="p-2 border rounded-md w-80"
             />
+
+            {suggestions.length > 0 && (
+                <ul className="absolute bg-white border mt-1 w-80 rounded-md shadow-md">
+                    {suggestions.map((suggestion, index) => (
+                        <li
+                            key={index}
+                            className="p-2 hover:bg-gray-200 cursor-pointer"
+                            onClick={() => selectSuggestion(suggestion)}
+                        >
+                            {suggestion}
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             {loading && <p className="mt-2 text-gray-600">🔄 Searching...</p>}
             {error && <p className="mt-2 text-red-500">{error}</p>}

@@ -3,6 +3,8 @@ from openai import OpenAI
 from pinecone import Pinecone, ServerlessSpec
 import os
 from dotenv import load_dotenv
+import time
+import json
 
 
 load_dotenv()
@@ -67,8 +69,17 @@ def semantic_search(query, top_k=5):
     results = index.query(vector=query_embedding, top_k=top_k, include_metadata=True)
     return [{"id": match["id"], "score": match["score"]} for match in results["matches"]]
 
+cache = {}
+
 # 3️⃣ Hybrid Search (Merging Both)
 def hybrid_search(query, top_k=5, bm25_weight=0.7, semantic_weight=0.3):
+    
+    if query in cache:
+        print("Cache hit!")
+        return cache[query]
+
+    start_time = time.time()
+    
     keyword_results = keyword_search(query, limit=top_k)
     semantic_results = semantic_search(query, top_k=top_k)
 
@@ -88,6 +99,9 @@ def hybrid_search(query, top_k=5, bm25_weight=0.7, semantic_weight=0.3):
 
     # Sort results by score
     sorted_results = sorted(combined_results.values(), key=lambda x: x["score"], reverse=True)
+    
+    cache[query] = sorted_results[:top_k]
+    print(f"⏳ Search took {round(time.time() - start_time, 2)}s")
     
     return sorted_results[:top_k]
 
