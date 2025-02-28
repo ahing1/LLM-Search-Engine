@@ -1,6 +1,8 @@
-"use client"; // ✅ Ensure this is a Client Component
+"use client";
 
 import { useState, useEffect } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Home() {
     const [query, setQuery] = useState("");
@@ -23,27 +25,26 @@ export default function Home() {
 
         return () => clearTimeout(delayDebounce); // Cleanup timeout
     }, [query]);
-    
+
     const fetchSuggestions = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/suggest/?q=${query}`);
+            const response = await fetch(`${API_URL}/suggest/?q=${query}`);
             if (!response.ok) throw new Error("Failed to fetch suggestions");
             const data = await response.json();
             setSuggestions(data.suggestions);
-        }
-        catch (err) {
+        } catch (err) {
             console.error("Suggestion error:", err);
         }
-    }
+    };
 
     const handleSearch = async () => {
         setLoading(true);
         setError("");
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/search/?q=${query}&top_k=5`);
+            const response = await fetch(`${API_URL}/search/?q=${query}&top_k=5`);
             if (!response.ok) throw new Error("Failed to fetch results");
-            
+
             const data = await response.json();
             setResults(data.results);
         } catch (err) {
@@ -58,33 +59,35 @@ export default function Home() {
         setQuery(suggestion);
         setSuggestions([]);
         handleSearch();
-    }
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100">
             <h1 className="text-3xl font-bold mb-4">AI-Powered Search</h1>
-            
-            <input
-                type="text"
-                placeholder="Search for AI topics..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="p-2 border rounded-md w-80"
-            />
 
-            {suggestions.length > 0 && (
-                <ul className="absolute bg-white border mt-1 w-80 rounded-md shadow-md">
-                    {suggestions.map((suggestion, index) => (
-                        <li
-                            key={index}
-                            className="p-2 hover:bg-gray-200 cursor-pointer"
-                            onClick={() => selectSuggestion(suggestion)}
-                        >
-                            {suggestion}
-                        </li>
-                    ))}
-                </ul>
-            )}
+            <div className="relative w-80">
+                <input
+                    type="text"
+                    placeholder="Search for AI topics..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="p-2 border rounded-md w-full"
+                />
+
+                {suggestions.length > 0 && (
+                    <ul className="absolute bg-white border mt-1 w-full rounded-md shadow-md z-10">
+                        {suggestions.map((suggestion, index) => (
+                            <li
+                                key={index}
+                                className="p-2 hover:bg-gray-200 cursor-pointer"
+                                onClick={() => selectSuggestion(suggestion)}
+                            >
+                                {suggestion}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
 
             {loading && <p className="mt-2 text-gray-600">🔄 Searching...</p>}
             {error && <p className="mt-2 text-red-500">{error}</p>}
@@ -105,3 +108,4 @@ export default function Home() {
         </div>
     );
 }
+    
